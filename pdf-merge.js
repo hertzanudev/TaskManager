@@ -128,20 +128,80 @@ function _buildSettingsPaneHtml() {
         </div>
       </div>
 
-      <button class="btn btn-primary" onclick="pdfSaveSettings()">💾 שמור הגדרות</button>
+      <div class="pdf-save-row">
+        <button class="btn btn-primary" onclick="pdfSaveSettings()">
+          💾 שמור הגדרות
+        </button>
+        <button class="btn btn-outline pdf-sync-btn" onclick="pdfSaveAndSync(this)">
+          ☁️ שמור ישירות ל-Firebase
+        </button>
+      </div>
+      <div id="pdf-sync-status" class="pdf-sync-status"></div>
     </div>`;
 }
 
-function pdfSaveSettings() {
-  const settings = {
+function _readPdfSettingsForm() {
+  return {
     triggerWord:   (document.getElementById('ps-trigger').value.trim() || 'סריקה'),
     subjectPrefix: (document.getElementById('ps-prefix').value.trim()  || '[קובץ סרוק]'),
     recipientsTo:  document.getElementById('ps-to').value.trim(),
     recipientsCC:  document.getElementById('ps-cc').value.trim(),
     recipientsBCC: document.getElementById('ps-bcc').value.trim()
   };
+}
+
+function pdfSaveSettings() {
+  const settings = _readPdfSettingsForm();
   _savePdfMergeSettings(settings);
-  if (typeof showToast === 'function') showToast('הגדרות PDF נשמרו ✓');
+  if (typeof showToast === 'function') showToast('הגדרות PDF נשמרו מקומית ✓');
+}
+
+// שמירה ישירה ל-Firebase – עוקף את מנגנון המיזוג
+// פותר מצב שבו הדפדפן מריץ גרסה ישנה מ-cache
+async function pdfSaveAndSync(btn) {
+  const settings = _readPdfSettingsForm();
+  _savePdfMergeSettings(settings);   // שמור מקומית גם כן
+
+  const statusEl = document.getElementById('pdf-sync-status');
+  const origText = btn.textContent;
+
+  // קבל Firebase URL
+  const firebaseUrl = (typeof getCloudUrl === 'function')
+    ? getCloudUrl()
+    : (localStorage.getItem('tm_cloud_url') || '').trim().replace(/\/$/, '');
+
+  if (!firebaseUrl) {
+    statusEl.innerHTML = '<span class="pdf-sync-err">❌ Firebase URL לא מוגדר – הגדר בהגדרות המערכת</span>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ שומר…';
+  statusEl.innerHTML = '';
+
+  try {
+    const res = await fetch(`${firebaseUrl}/appdata/pdf_merge_settings.json`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(settings)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    statusEl.innerHTML = '<span class="pdf-sync-ok">✅ ההגדרות נשמרו ל-Firebase בהצלחה</span>';
+    if (typeof showToast === 'function') showToast('הגדרות PDF נשמרו ל-Firebase ✓');
+
+    // אמת שהנתון אכן קיים
+    const verify = await fetch(`${firebaseUrl}/appdata/pdf_merge_settings.json`);
+    const saved  = await verify.json();
+    if (saved && saved.triggerWord) {
+      statusEl.innerHTML += `<br><span class="pdf-sync-verify">🔍 אומת – מילת טריגר בענן: <strong>${saved.triggerWord}</strong></span>`;
+    }
+  } catch(err) {
+    statusEl.innerHTML = `<span class="pdf-sync-err">❌ שגיאה: ${err.message}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 }
 
 // ── File Handling ────────────────────────────────────────

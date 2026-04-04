@@ -1192,3 +1192,17 @@ code {
   font-size: 12px;
   color: var(--gray-500, #6b7280);
 }
+
+/* PDF settings save row */
+.pdf-save-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pdf-sync-btn { white-space: nowrap; }
+
+.pdf-sync-status  { margin-top: 10px; font-size: 13px; line-height: 1.7; }
+.pdf-sync-ok      { color: #059669; font-weight: 600; }
+.pdf-sync-err     { color: #dc2626; font-weight: 600; }
+.pdf-sync-verify  { color: #2563eb; }
