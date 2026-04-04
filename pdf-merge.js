@@ -4,7 +4,8 @@
 
 'use strict';
 
-const PDF_SETTINGS_KEY = 'pdf_merge_settings';
+const PDF_SETTINGS_KEY  = 'pdf_merge_settings';
+const PDF_WEBAPP_URL    = 'https://script.google.com/macros/s/AKfycbzMn8CpugeVxX8BbfHDx6N963IO5P5SfKWNBZUwUYwH9wEdVvevPb7F6tBoYO_6Q2hY/exec';
 let _pdfFiles   = [];   // [{ file: File, name: string, size: number, modified: number }]
 let _pdfLibReady = false;
 
@@ -70,6 +71,18 @@ function _buildMergePaneHtml() {
         <button class="btn btn-outline"  onclick="pdfClearAll()">🗑 נקה הכל</button>
       </div>
       <div id="pdf-status" class="pdf-status"></div>
+
+      <div class="pdf-trigger-card">
+        <div class="pdf-trigger-title">📬 עיבוד מיילים עכשיו</div>
+        <p class="pdf-trigger-desc">
+          לחץ להפעלה מיידית של הסקריפט — המערכת תבדוק את תיבת המייל,
+          תאחד קבצי PDF ותשלח לנמענים, ללא המתנה לטריגר האוטומטי.
+        </p>
+        <button class="btn btn-primary pdf-trigger-btn" id="pdf-trigger-btn" onclick="pdfRunNow()">
+          ▶ הפעל עכשיו
+        </button>
+        <div id="pdf-trigger-status" class="pdf-trigger-status"></div>
+      </div>
     </div>`;
 }
 
@@ -148,6 +161,27 @@ function _readPdfSettingsForm() {
     recipientsCC:  document.getElementById('ps-cc').value.trim(),
     recipientsBCC: document.getElementById('ps-bcc').value.trim()
   };
+}
+
+// ── הפעלה מיידית של Apps Script ─────────────────────────
+async function pdfRunNow() {
+  const btn      = document.getElementById('pdf-trigger-btn');
+  const statusEl = document.getElementById('pdf-trigger-status');
+
+  btn.disabled    = true;
+  btn.textContent = '⏳ מריץ…';
+  statusEl.innerHTML = '';
+
+  try {
+    const res  = await fetch(PDF_WEBAPP_URL, { mode: 'no-cors' });
+    // no-cors לא מחזיר תוכן – אבל הבקשה נשלחה בהצלחה
+    statusEl.innerHTML = '<span class="pdf-sync-ok">✅ הסקריפט הופעל — בדוק את תיבת המייל תוך כ-30 שניות</span>';
+  } catch(err) {
+    statusEl.innerHTML = `<span class="pdf-sync-err">❌ שגיאה: ${err.message}</span>`;
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '▶ הפעל עכשיו';
+  }
 }
 
 function pdfSaveSettings() {

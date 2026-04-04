@@ -1206,3 +1206,27 @@ code {
 .pdf-sync-ok      { color: #059669; font-weight: 600; }
 .pdf-sync-err     { color: #dc2626; font-weight: 600; }
 .pdf-sync-verify  { color: #2563eb; }
+
+/* PDF trigger card */
+.pdf-trigger-card {
+  margin-top: 28px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  padding: 20px 22px;
+  max-width: 720px;
+}
+.pdf-trigger-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #15803d;
+  margin-bottom: 8px;
+}
+.pdf-trigger-desc {
+  font-size: 13px;
+  color: #374151;
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
+.pdf-trigger-btn  { min-width: 140px; }
+.pdf-trigger-status { margin-top: 10px; font-size: 13px; }
