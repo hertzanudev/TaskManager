@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ניהול משימות</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2b6cb0">
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="משימות">
+  <link rel="apple-touch-icon" href="icon.svg">
+
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+
+  <!-- ═══════════════ LOGIN OVERLAY ═══════════════ -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">📋</div>
+      <h1 class="login-title">ניהול משימות</h1>
+      <p class="login-subtitle">התחבר כדי להמשיך</p>
+
+      <form class="login-form" onsubmit="submitLogin(event)" novalidate>
+        <div class="form-group">
+          <label for="login-username">שם משתמש</label>
+          <input type="text" id="login-username" class="form-control"
+                 placeholder="הזן שם משתמש" autocomplete="username" dir="ltr">
+        </div>
+        <div class="form-group">
+          <label for="login-password">סיסמא</label>
+          <div class="password-wrapper">
+            <input type="password" id="login-password" class="form-control"
+                   placeholder="הזן סיסמא" autocomplete="current-password"
+                   dir="ltr" onkeydown="loginKeydown(event)">
+            <button type="button" class="toggle-password" onclick="togglePasswordVisibility()"
+                    title="הצג/הסתר סיסמא">👁</button>
+          </div>
+        </div>
+        <div class="login-error" id="login-error" role="alert"></div>
+        <button type="submit" class="btn btn-primary login-btn" id="login-btn">התחבר</button>
+      </form>
+      <div style="margin-top:18px;text-align:center">
+        <button onclick="downloadLogs()" class="log-download-btn" title="הורד קובץ לוג לאבחון בעיות">
+          📋 הורד קובץ לוג
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MAIN APP ═══════════════ -->
+  <div id="app" style="visibility:hidden">
+
+    <!-- Mobile Header -->
+    <header id="mobile-header">
+      <button id="hamburger" onclick="toggleSidebar()" aria-label="תפריט">
+        <span></span><span></span><span></span>
+      </button>
+      <span class="mobile-title">📋 ניהול משימות</span>
+      <a href="#task-form" onclick="startNewTask()" class="mobile-add-btn" aria-label="משימה חדשה">+</a>
+    </header>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <nav id="sidebar">
+      <div class="nav-brand">
+        <span class="nav-brand-icon">📋</span>
+        <span class="nav-brand-text">ניהול משימות</span>
+        <button class="sidebar-close-btn" onclick="closeSidebar()" aria-label="סגור תפריט">✕</button>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#main"      class="nav-link" data-screen="main"      onclick="closeSidebar()">🏠 ראשי</a></li>
+        <li><a href="#completed" class="nav-link" data-screen="completed" onclick="closeSidebar()">✅ הושלמו</a></li>
+        <li><a href="#deleted"   class="nav-link" data-screen="deleted"   onclick="closeSidebar()">🗑 נמחקו</a></li>
+        <li><a href="#search"    class="nav-link" data-screen="search"    onclick="closeSidebar()">🔍 חיפוש</a></li>
+        <li><a href="#stats"     class="nav-link" data-screen="stats"     onclick="closeSidebar()">📊 סטטיסטיקה</a></li>
+        <li><a href="#settings"  class="nav-link" data-screen="settings"  onclick="closeSidebar()">⚙️ הגדרות</a></li>
+      </ul>
+      <div class="nav-footer">
+        <div class="nav-user">
+          <span class="nav-user-icon">👤</span>
+          <span id="nav-username" class="nav-user-name"></span>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="התנתק">
+          ⏏ התנתק
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="content">
+      <!-- Rendered by JavaScript -->
+    </main>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <!-- Popup Overlay -->
+  <div id="popup-overlay" class="popup-overlay" onclick="closePopup()"></div>
+  <div id="popup" class="popup" role="dialog" aria-modal="true"></div>
+
+  <!-- Export Dialog -->
+  <div id="export-overlay" class="popup-overlay" onclick="closeExportDialog()"></div>
+  <div id="export-dialog" class="modal" role="dialog" aria-modal="true"></div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="confirm-overlay" class="popup-overlay"></div>
+  <div id="confirm-dialog" class="modal confirm-modal" role="dialog" aria-modal="true"></div>
+
+  <script src="storage.js"></script>
+  <script src="logger.js"></script>
+  <script src="cloud.js"></script>
+  <script src="auth.js"></script>
+  <script src="export.js"></script>
+  <script src="stats.js"></script>
+  <script src="app.js"></script>
+  <script src="report.js"></script>
+
+  <script>
+    function togglePasswordVisibility() {
+      const input = document.getElementById('login-password');
+      input.type  = input.type === 'password' ? 'text' : 'password';
+    }
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-overlay').classList.toggle('visible');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('visible');
+    }
+  </script>
+</body>
+</html>

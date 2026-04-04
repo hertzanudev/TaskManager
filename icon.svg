@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- רקע עגול -->
+  <rect width="512" height="512" rx="110" fill="#1a365d"/>
+  <!-- גוף הלוח -->
+  <rect x="116" y="148" width="280" height="316" rx="18" fill="white"/>
+  <!-- קליפ עליון -->
+  <rect x="196" y="118" width="120" height="52" rx="14" fill="white"/>
+  <rect x="214" y="126" width="84" height="36" rx="10" fill="#2b6cb0"/>
+  <!-- קו 1 -->
+  <rect x="158" y="228" width="196" height="13" rx="6.5" fill="#e2e8f0"/>
+  <!-- קו 2 -->
+  <rect x="158" y="262" width="152" height="13" rx="6.5" fill="#e2e8f0"/>
+  <!-- קו 3 -->
+  <rect x="158" y="296" width="180" height="13" rx="6.5" fill="#e2e8f0"/>
+  <!-- וי ירוק -->
+  <path d="M162 358 L210 408 L352 290"
+        stroke="#38a169" stroke-width="32"
+        stroke-linecap="round" stroke-linejoin="round"
+        fill="none"/>
+</svg>
