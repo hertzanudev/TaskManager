@@ -23,6 +23,9 @@ function createPdfTrigger() {
   Logger.log('✅ טריגר PDF נוצר – יפעל כל 5 דקות');
 }
 
+// שם התווית שמסמנת מייל שכבר עובד – מונע עיבוד כפול
+const PROCESSED_LABEL = 'PDF-עובד';
+
 // ── Main Function (נקרא ע"י הטריגר) ─────────────────────
 function processPdfEmails() {
   const settings = _loadPdfSettings();
@@ -31,14 +34,18 @@ function processPdfEmails() {
   const trigger = (settings.triggerWord || 'סריקה').trim();
   if (!trigger) { Logger.log('⚠️ מילת טריגר ריקה'); return; }
 
-  const threads = GmailApp.search(`subject:${trigger} is:unread -from:me`, 0, 10);
-  Logger.log(`נמצאו ${threads.length} מיילים לעיבוד`);
+  // חיפוש: נושא מכיל טריגר + לא נקרא + עדיין לא עובד (אין תווית PDF-עובד)
+  const query = `subject:${trigger} is:unread -from:me -label:${PROCESSED_LABEL}`;
+  const threads = GmailApp.search(query, 0, 10);
+  Logger.log(`נמצאו ${threads.length} מיילים חדשים לעיבוד`);
 
   threads.forEach(thread => {
     try {
       _processThread(thread, settings);
     } catch(e) {
       Logger.log(`❌ שגיאה בעיבוד מייל: ${e.message}`);
+      // גם במקרה של שגיאה – סמן כמעובד כדי למנוע לולאה אינסופית
+      _markProcessed(thread);
     }
   });
 }
@@ -70,8 +77,8 @@ function _processThread(thread, settings) {
   );
 
   if (pdfAttachments.length === 0) {
-    Logger.log(`אין PDF במייל "${subj}" – מדולג`);
-    thread.markRead();
+    Logger.log(`אין PDF במייל "${subj}" – מסומן כמעובד ומדולג`);
+    _markProcessed(thread);
     return;
   }
 
@@ -97,14 +104,31 @@ function _processThread(thread, settings) {
       // fallback – שלח קבצים בנפרד
       Logger.log('⚠️ איחוד נכשל – שולח קבצים בנפרד');
       _sendEmail(settings, subj, sorted.map(a => a.copyBlob()), overrideEmail);
-      thread.markRead();
+      _markProcessed(thread);
       return;
     }
   }
 
   _sendEmail(settings, subj, [finalBlob], overrideEmail);
-  thread.markRead();
-  Logger.log(`✅ מייל נשלח עבור: "${subj}"`);
+  _markProcessed(thread);
+  Logger.log(`✅ מייל נשלח ומסומן כמעובד: "${subj}"`);
+}
+
+// ── Mark Thread as Processed (מניעת עיבוד כפול) ─────────
+// מוסיף תווית "PDF-עובד" + מסמן כנקרא
+// גם אם המייל יסומן ידנית כ"לא נקרא" בעתיד – התווית תמנע עיבוד חוזר
+function _markProcessed(thread) {
+  try {
+    let label = GmailApp.getUserLabelByName(PROCESSED_LABEL);
+    if (!label) {
+      label = GmailApp.createLabel(PROCESSED_LABEL);
+      Logger.log(`תווית "${PROCESSED_LABEL}" נוצרה`);
+    }
+    thread.addLabel(label);
+    thread.markRead();
+  } catch(e) {
+    Logger.log(`⚠️ לא ניתן לסמן כמעובד: ${e.message}`);
+  }
 }
 
 // ── Extract Override Recipient from Email Body ───────────

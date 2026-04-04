@@ -114,6 +114,9 @@ function mergeCloudData(local, cloud) {
   });
   merged.dailyStats = mergedStats;
 
+  // pdf_merge_settings: מקומי גובר (המשתמש שמר הגדרות חדשות)
+  merged.pdf_merge_settings = local.pdf_merge_settings || cloud.pdf_merge_settings || null;
+
   return merged;
 }
 
