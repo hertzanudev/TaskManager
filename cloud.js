@@ -3,7 +3,7 @@
 // אין צורך ב-SDK – משתמשים ב-fetch בלבד
 
 const CLOUD_URL_KEY  = 'tm_cloud_url';
-const CLOUD_SYNC_KEYS = ['tasks', 'settings', 'auditLog', 'dailyStats', 'tm_users', 'tm_perm_deleted'];
+const CLOUD_SYNC_KEYS = ['tasks', 'settings', 'auditLog', 'dailyStats', 'tm_users', 'tm_perm_deleted', 'pdf_merge_settings'];
 
 // ← הכנס כאן את ה-URL של Firebase שלך (יטען אוטומטית בכל דפדפן/אינקוגניטו)
 const DEFAULT_CLOUD_URL = 'https://task-manager-ac919-default-rtdb.europe-west1.firebasedatabase.app';

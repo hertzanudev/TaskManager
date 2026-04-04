@@ -84,9 +84,10 @@ function router() {
     case 'deleted':   renderDeleted();   break;
     case 'stats':     renderStats();     break;
     case 'search':    renderSearch();    break;
-    case 'settings':  renderSettings();  break;
-    case 'task-form': renderTaskForm();  break;
-    default:          renderMain();      break;
+    case 'settings':  renderSettings();     break;
+    case 'task-form': renderTaskForm();    break;
+    case 'pdf-merge': renderPdfMergerPage(); break;
+    default:          renderMain();        break;
   }
 }
 
