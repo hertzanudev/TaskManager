@@ -86,8 +86,9 @@ function router() {
     case 'search':    renderSearch();    break;
     case 'settings':  renderSettings();     break;
     case 'task-form': renderTaskForm();    break;
-    case 'pdf-merge': renderPdfMergerPage(); break;
-    default:          renderMain();        break;
+    case 'pdf-merge':    renderPdfMergerPage();  break;
+    case 'instructions': renderInstructions();   break;
+    default:             renderMain();           break;
   }
 }
 
