@@ -427,6 +427,9 @@ function renderCompleted() {
     <div class="screen">
       <div class="screen-header">
         <h1 class="screen-title">✅ משימות שהושלמו</h1>
+        <div class="btn-header-actions">
+          <button class="btn btn-outline" onclick="syncNow()" title="טען נתונים עדכניים מהענן">🔄 סנכרון</button>
+        </div>
       </div>
       <div class="filter-bar">
         <span class="filter-label">סינון:</span>
@@ -468,6 +471,9 @@ function renderDeleted() {
     <div class="screen">
       <div class="screen-header">
         <h1 class="screen-title">🗑 משימות שנמחקו</h1>
+        <div class="btn-header-actions">
+          <button class="btn btn-outline" onclick="syncNow()" title="טען נתונים עדכניים מהענן">🔄 סנכרון</button>
+        </div>
       </div>
       <div class="filter-bar">
         <span class="filter-label">סינון:</span>
