@@ -563,6 +563,9 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 .audit-table th { background: var(--gray-50); padding: 9px 12px; text-align: right; font-size: 12px; font-weight: 600; color: var(--gray-500); border-bottom: 1px solid var(--gray-200); }
 .audit-table td { padding: 9px 12px; border-bottom: 1px solid var(--gray-100); }
 .audit-table tr:last-child td { border-bottom: none; }
+.btn-icon-sm { background: none; border: none; cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 14px; line-height: 1; }
+.btn-danger-ghost { color: #dc2626; }
+.btn-danger-ghost:hover { background: #fee2e2; }
 
 /* ===================== STATS SCREEN ===================== */
 .stats-controls {

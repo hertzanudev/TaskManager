@@ -902,14 +902,16 @@ function renderSettings() {
       <button class="tag-remove" onclick="removeCategory(${i})" title="הסר">✕</button>
     </span>`).join('');
 
+  const isAdmin   = !!getCurrentUser()?.isAdmin;
   const auditRows = auditLog.length === 0
-    ? `<tr><td colspan="4" class="text-muted" style="text-align:center;padding:16px">אין רשומות</td></tr>`
+    ? `<tr><td colspan="${isAdmin ? 5 : 4}" class="text-muted" style="text-align:center;padding:16px">אין רשומות</td></tr>`
     : auditLog.map(r => `
         <tr>
           <td>${formatDate(r.timestamp)}</td>
           <td class="task-desc-cell" title="${esc(r.taskDescription)}">${esc(truncate(r.taskDescription, 40))}</td>
           <td>${esc(r.previousEmployee)}</td>
           <td>${esc(r.newEmployee)}</td>
+          ${isAdmin ? `<td><button class="btn-icon-sm btn-danger-ghost" onclick="deleteAuditEntry('${r.id}')" title="מחק שורה">🗑</button></td>` : ''}
         </tr>`).join('');
 
   content.innerHTML = `
@@ -1019,7 +1021,10 @@ function renderSettings() {
 
       <!-- Audit Log -->
       <div class="settings-section">
-        <div class="settings-section-title">📋 יומן שינויים (Audit Log)</div>
+        <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>📋 יומן שינויים (Audit Log)</span>
+          ${isAdmin && auditLog.length > 0 ? `<button class="btn btn-danger btn-sm" onclick="clearAuditLog()">🗑 מחק הכל</button>` : ''}
+        </div>
         <div style="overflow-x:auto">
           <table class="audit-table">
             <thead>
@@ -1028,6 +1033,7 @@ function renderSettings() {
                 <th>תיאור משימה</th>
                 <th>עובד קודם</th>
                 <th>עובד חדש</th>
+                ${isAdmin ? '<th style="width:40px"></th>' : ''}
               </tr>
             </thead>
             <tbody>${auditRows}</tbody>
@@ -1189,6 +1195,26 @@ function buildReportSettingsHtml(rs) {
       <span class="text-muted text-sm" style="align-self:center">נשלח לאחרונה: ${lastSent}</span>
     </div>
   </div>`;
+}
+
+// ── Audit Log Actions ──────────────────────────────────
+function deleteAuditEntry(id) {
+  showConfirm('למחוק שורה זו מיומן השינויים?', () => {
+    const updated = getAuditLog().filter(r => r.id !== id);
+    saveAuditLog(updated);
+    cloudSaveDebounced();
+    renderSettings();
+    showToast('שורה נמחקה');
+  });
+}
+
+function clearAuditLog() {
+  showConfirm('למחוק את כל יומן השינויים? פעולה זו אינה הפיכה.', () => {
+    saveAuditLog([]);
+    cloudSaveDebounced();
+    renderSettings();
+    showToast('יומן השינויים נוקה');
+  });
 }
 
 function addEmployee() {
