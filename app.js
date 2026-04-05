@@ -8,9 +8,9 @@ let longPressTarget  = null;
 
 // Filter state per screen
 const filterState = {
-  main:      { employees: [], categories: [] },
-  completed: { employees: [], categories: [], dateFrom: '', dateTo: '' },
-  deleted:   { employees: [], categories: [], dateFrom: '', dateTo: '' }
+  main:      { employees: [], categories: [], idQuery: '' },
+  completed: { employees: [], categories: [], dateFrom: '', dateTo: '', idQuery: '' },
+  deleted:   { employees: [], categories: [], dateFrom: '', dateTo: '', idQuery: '' }
 };
 
 // ── Init ───────────────────────────────────────────────
@@ -319,11 +319,16 @@ function renderMain() {
     return new Date(a.createdAt) - new Date(b.createdAt);
   });
 
+  if (fs.idQuery) openTasks = openTasks.filter(t => String(t.id).includes(fs.idQuery.trim()));
+
   const filterHtml = hasSetup ? `
     <div class="filter-bar">
       <span class="filter-label">סינון:</span>
       ${buildMultiselect('main-emp',  settings.employees,  fs.employees,  'עובד – הכל',     v => { filterState.main.employees  = v; renderMain(); })}
       ${buildMultiselect('main-cat',  settings.categories, fs.categories, 'קטגוריה – הכל',  v => { filterState.main.categories = v; renderMain(); })}
+      <input type="text" class="id-search-input" placeholder="🔍 מזהה" dir="ltr"
+             value="${esc(fs.idQuery)}"
+             oninput="filterState.main.idQuery=this.value;renderMain()">
       <button class="btn btn-sm btn-outline" onclick="clearMainFilters()">נקה סינונים</button>
     </div>` : '';
 
@@ -389,6 +394,7 @@ async function syncNow() {
 function clearMainFilters() {
   filterState.main.employees  = [];
   filterState.main.categories = [];
+  filterState.main.idQuery    = '';
   renderMain();
 }
 
@@ -413,6 +419,7 @@ function renderCompleted() {
   if (fs.categories.length > 0) filtered = filtered.filter(t => fs.categories.includes(t.category));
   if (fs.dateFrom) filtered = filtered.filter(t => toDateKey(t.completedAt) >= fs.dateFrom);
   if (fs.dateTo)   filtered = filtered.filter(t => toDateKey(t.completedAt) <= fs.dateTo);
+  if (fs.idQuery)  filtered = filtered.filter(t => String(t.id).includes(fs.idQuery.trim()));
 
   filtered.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
 
@@ -429,6 +436,9 @@ function renderCompleted() {
         <input type="date" class="date-input" id="comp-from" value="${fs.dateFrom}" onchange="filterState.completed.dateFrom=this.value;renderCompleted()">
         <span class="filter-label">עד:</span>
         <input type="date" class="date-input" id="comp-to"   value="${fs.dateTo}"   onchange="filterState.completed.dateTo=this.value;renderCompleted()">
+        <input type="text" class="id-search-input" placeholder="🔍 מזהה" dir="ltr"
+               value="${esc(fs.idQuery)}"
+               oninput="filterState.completed.idQuery=this.value;renderCompleted()">
         <button class="btn btn-sm btn-outline" onclick="clearArchiveFilters('completed')">נקה סינונים</button>
       </div>
       ${renderTaskTable(filtered, 'completed', settings)}
@@ -451,6 +461,7 @@ function renderDeleted() {
   if (fs.categories.length > 0) filtered = filtered.filter(t => fs.categories.includes(t.category));
   if (fs.dateFrom) filtered = filtered.filter(t => toDateKey(t.deletedAt) >= fs.dateFrom);
   if (fs.dateTo)   filtered = filtered.filter(t => toDateKey(t.deletedAt) <= fs.dateTo);
+  if (fs.idQuery)  filtered = filtered.filter(t => String(t.id).includes(fs.idQuery.trim()));
   filtered.sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
 
   content.innerHTML = `
@@ -466,6 +477,9 @@ function renderDeleted() {
         <input type="date" class="date-input" id="del-from" value="${fs.dateFrom}" onchange="filterState.deleted.dateFrom=this.value;renderDeleted()">
         <span class="filter-label">עד:</span>
         <input type="date" class="date-input" id="del-to"   value="${fs.dateTo}"   onchange="filterState.deleted.dateTo=this.value;renderDeleted()">
+        <input type="text" class="id-search-input" placeholder="🔍 מזהה" dir="ltr"
+               value="${esc(fs.idQuery)}"
+               oninput="filterState.deleted.idQuery=this.value;renderDeleted()">
         <button class="btn btn-sm btn-outline" onclick="clearArchiveFilters('deleted')">נקה סינונים</button>
       </div>
       ${renderTaskTable(filtered, 'deleted', settings)}
@@ -481,6 +495,7 @@ function clearArchiveFilters(screen) {
   filterState[screen].categories = [];
   filterState[screen].dateFrom   = '';
   filterState[screen].dateTo     = '';
+  filterState[screen].idQuery    = '';
   if (screen === 'completed') renderCompleted();
   else renderDeleted();
 }
@@ -558,32 +573,115 @@ function renderSearch() {
   if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
 }
 
+// ── Bulk Selection State ───────────────────────────────
+const _bulkSel = {
+  main:      new Set(),
+  completed: new Set(),
+  deleted:   new Set()
+};
+
+function toggleRowSelect(mode, id) {
+  const sel = _bulkSel[mode]; if (!sel) return;
+  sel.has(id) ? sel.delete(id) : sel.add(id);
+  const row = document.querySelector(`[data-table-mode="${mode}"] tr[data-id="${id}"]`);
+  if (row) row.classList.toggle('row-selected', sel.has(id));
+  _refreshBulkToolbar(mode);
+  _syncCheckAll(mode);
+}
+
+function selectAllRows(mode, checked) {
+  const sel = _bulkSel[mode]; if (!sel) return;
+  sel.clear();
+  document.querySelectorAll(`[data-table-mode="${mode}"] tr[data-action-row]`).forEach(row => {
+    const cb = row.querySelector('.row-check');
+    if (checked) { sel.add(row.dataset.id); row.classList.add('row-selected'); if (cb) cb.checked = true; }
+    else         { row.classList.remove('row-selected'); if (cb) cb.checked = false; }
+  });
+  _refreshBulkToolbar(mode);
+}
+
+function clearBulkSelection(mode) {
+  const sel = _bulkSel[mode]; if (!sel) return;
+  sel.clear();
+  document.querySelectorAll(`[data-table-mode="${mode}"] tr[data-action-row]`).forEach(row => {
+    row.classList.remove('row-selected');
+    const cb = row.querySelector('.row-check'); if (cb) cb.checked = false;
+  });
+  const allCb = document.querySelector(`[data-check-all="${mode}"]`);
+  if (allCb) { allCb.checked = false; allCb.indeterminate = false; }
+  _refreshBulkToolbar(mode);
+}
+
+function _refreshBulkToolbar(mode) {
+  const toolbar = document.getElementById(`bulk-toolbar-${mode}`);
+  const countEl = document.getElementById(`bulk-count-${mode}`);
+  const sel     = _bulkSel[mode];
+  if (!toolbar || !sel) return;
+  toolbar.style.display = sel.size > 0 ? 'flex' : 'none';
+  if (countEl) countEl.textContent = sel.size;
+}
+
+function _syncCheckAll(mode) {
+  const allCb = document.querySelector(`[data-check-all="${mode}"]`); if (!allCb) return;
+  const rows  = document.querySelectorAll(`[data-table-mode="${mode}"] tr[data-action-row]`);
+  const sel   = _bulkSel[mode];
+  allCb.indeterminate = sel.size > 0 && sel.size < rows.length;
+  allCb.checked       = rows.length > 0 && sel.size === rows.length;
+}
+
+function bulkAction(action, mode) {
+  const ids = [...(_bulkSel[mode] || [])];
+  if (!ids.length) return;
+  const n    = ids.length;
+  const msgs = {
+    'delete':      `למחוק ${n} משימות נבחרות?`,
+    'restore':     `לשחזר ${n} משימות נבחרות?`,
+    'perm-delete': `⚠️ מחיקה לצמיתות של ${n} משימות – פעולה זו אינה הפיכה!`
+  };
+  showConfirm(msgs[action] || `לבצע פעולה על ${n} משימות?`, () => {
+    ids.forEach(id => {
+      if      (action === 'delete')      deleteTask(id);
+      else if (action === 'restore')     restoreTask(id);
+      else if (action === 'perm-delete') permanentlyDeleteTask(id);
+    });
+    _bulkSel[mode].clear();
+    cloudSaveDebounced();
+    showToast(`${n} משימות עודכנו ✓`);
+    router();
+  });
+}
+
 // ── Table Renderer ─────────────────────────────────────
 function renderTaskTable(tasks, mode, settings) {
+  const isBulk = mode === 'main' || mode === 'completed' || mode === 'deleted';
+
   if (!tasks || tasks.length === 0) {
-    return `<div class="task-table-wrap"><div class="empty-state">
+    if (isBulk) _bulkSel[mode].clear();
+    return `<div class="task-table-wrap" data-table-mode="${mode}"><div class="empty-state">
       <div class="empty-state-icon">📭</div>
       <div class="empty-state-title">אין משימות להצגה</div>
       <div class="empty-state-desc">${mode === 'main' ? 'לחץ "+ משימה חדשה" כדי להתחיל' : 'אין נתונים בטווח זה'}</div>
     </div></div>`;
   }
 
-  const showComplete       = mode === 'main';
-  const showDelete         = mode === 'main';
-  const showRestore        = mode === 'completed' || mode === 'deleted';
-  const showEdit           = mode === 'main' || mode === 'completed';
-  const showPermDelete     = mode === 'deleted' || mode === 'completed';
+  const showComplete   = mode === 'main';
+  const showDelete     = mode === 'main';
+  const showRestore    = mode === 'completed' || mode === 'deleted';
+  const showEdit       = mode === 'main' || mode === 'completed';
+  const showPermDelete = mode === 'deleted' || mode === 'completed';
 
   const dateCol = mode === 'completed' ? 'תאריך השלמה'
                 : mode === 'deleted'   ? 'תאריך מחיקה'
                 : 'תאריך יצירה';
 
-  const rows = tasks.map(task => {
-    const isDraft = task.status === 'draft';
-    const dateVal = mode === 'completed' ? formatDateOnly(task.completedAt)
-                  : mode === 'deleted'   ? formatDateOnly(task.deletedAt)
-                  : formatDateOnly(task.createdAt);
+  const sel = isBulk ? _bulkSel[mode] : new Set();
 
+  const rows = tasks.map(task => {
+    const isDraft    = task.status === 'draft';
+    const isSelected = isBulk && sel.has(task.id);
+    const dateVal    = mode === 'completed' ? formatDateOnly(task.completedAt)
+                     : mode === 'deleted'   ? formatDateOnly(task.deletedAt)
+                     : formatDateOnly(task.createdAt);
     const importanceBadge = getImportanceBadge(task.importance, settings);
 
     const actions = `
@@ -591,13 +689,20 @@ function renderTaskTable(tasks, mode, settings) {
         ${showComplete && !isDraft ? `<button class="row-btn complete-btn" data-action="complete" data-id="${task.id}" title="סמן כהושלם">✓</button>` : ''}
         ${showDelete              ? `<button class="row-btn delete-btn"   data-action="delete"   data-id="${task.id}" title="מחק">🗑</button>` : ''}
         ${showEdit                ? `<button class="row-btn edit-btn"     data-action="edit"     data-id="${task.id}" title="ערוך">✏</button>` : ''}
-        ${showRestore             ? `<button class="row-btn restore-btn"   data-action="restore"      data-id="${task.id}" title="שחזר">↩ שחזר</button>` : ''}
+        ${showRestore             ? `<button class="row-btn restore-btn"  data-action="restore"  data-id="${task.id}" title="שחזר">↩ שחזר</button>` : ''}
         ${showPermDelete          ? `<button class="row-btn perm-del-btn" data-action="perm-delete" data-id="${task.id}" title="מחק לצמיתות">🗑 מחק לצמיתות</button>` : ''}
       </div>`;
 
-    return `<tr class="${isDraft ? 'draft-row' : ''}"
-               data-id="${task.id}"
-               data-action-row="true">
+    const checkCell = isBulk
+      ? `<td class="col-check" onclick="event.stopPropagation()">
+           <input type="checkbox" class="row-check" ${isSelected ? 'checked' : ''}
+                  onchange="toggleRowSelect('${mode}','${task.id}')">
+         </td>` : '';
+
+    return `<tr class="${isDraft ? 'draft-row' : ''}${isSelected ? ' row-selected' : ''}"
+               data-id="${task.id}" data-action-row="true">
+      ${checkCell}
+      <td class="col-task-id" data-label="מזהה"><span class="task-id-chip">${esc(task.id)}</span></td>
       <td data-label="תאריך">${dateVal}</td>
       <td data-label="עובד">${isDraft ? '<span class="draft-label">טיוטה</span>' : ''}${esc(task.assignedTo)}</td>
       <td data-label="קטגוריה">${esc(task.category)}</td>
@@ -612,11 +717,36 @@ function renderTaskTable(tasks, mode, settings) {
     </tr>`;
   }).join('');
 
+  // ── Bulk action toolbar ────────────────────────────────
+  const bulkToolbar = isBulk ? `
+    <div class="bulk-toolbar" id="bulk-toolbar-${mode}" style="${sel.size > 0 ? 'display:flex' : 'display:none'}">
+      <span class="bulk-sel-count"><span id="bulk-count-${mode}">${sel.size}</span> נבחרו</span>
+      <div class="bulk-btn-group">
+        ${mode === 'main' ? `
+          <button class="btn btn-sm btn-bulk-danger" onclick="bulkAction('delete','${mode}')">🗑 מחק נבחרים</button>` : ''}
+        ${mode === 'completed' ? `
+          <button class="btn btn-sm btn-bulk-success" onclick="bulkAction('restore','${mode}')">↩ שחזר נבחרים</button>
+          <button class="btn btn-sm btn-bulk-danger"  onclick="bulkAction('delete','${mode}')">🗑 מחק נבחרים</button>
+          <button class="btn btn-sm btn-bulk-danger"  onclick="bulkAction('perm-delete','${mode}')" style="opacity:.8">💀 מחק לצמיתות</button>` : ''}
+        ${mode === 'deleted' ? `
+          <button class="btn btn-sm btn-bulk-success" onclick="bulkAction('restore','${mode}')">↩ שחזר נבחרים</button>
+          <button class="btn btn-sm btn-bulk-danger"  onclick="bulkAction('perm-delete','${mode}')">💀 מחק לצמיתות</button>` : ''}
+      </div>
+      <button class="btn btn-sm btn-outline bulk-cancel-btn" onclick="clearBulkSelection('${mode}')">✕ ביטול</button>
+    </div>` : '';
+
+  const checkHeader = isBulk
+    ? `<th class="col-check"><input type="checkbox" data-check-all="${mode}" onchange="selectAllRows('${mode}',this.checked)" title="בחר הכל"></th>`
+    : '';
+
   return `
-    <div class="task-table-wrap">
+    <div class="task-table-wrap" data-table-mode="${mode}">
+      ${bulkToolbar}
       <table class="task-table">
         <thead>
           <tr>
+            ${checkHeader}
+            <th class="col-task-id">מזהה</th>
             <th>${dateCol}</th>
             <th>עובד</th>
             <th>קטגוריה</th>
@@ -636,9 +766,9 @@ function attachTableEvents() {
   document.querySelectorAll('tbody tr[data-action-row]').forEach(row => {
     const taskId = row.dataset.id;
 
-    // לחיצה כפולה → עריכה
+    // לחיצה כפולה → עריכה (לא על כפתורי פעולה ולא על תיבת סימון)
     row.addEventListener('dblclick', (e) => {
-      if (e.target.closest('.row-actions')) return;
+      if (e.target.closest('.row-actions') || e.target.closest('.col-check')) return;
       startEditTask(taskId);
     });
 
@@ -995,6 +1125,31 @@ function renderSettings() {
         <div id="cloud-status-indicator" style="margin-top:10px;font-size:13px"></div>
       </div>
 
+      <!-- קליטת משימות ממייל -->
+      <div class="settings-section">
+        <div class="settings-section-title">📧 קליטת משימות ממייל</div>
+        <p class="text-muted text-sm" style="margin-bottom:14px">
+          לפתיחת משימה באמצעות מייל שלח הודעה עם נושא בפורמט:
+          <code style="background:#f3f4f6;padding:1px 6px;border-radius:4px">משימה, שם עובד, קטגוריה</code>
+          — גוף המייל יהפוך לתיאור המשימה.
+        </p>
+
+        <div class="form-group" style="max-width:520px">
+          <label>כתובת Web App של Apps Script</label>
+          <input type="url" class="form-control" id="task-webapp-url"
+                 value="${esc(settings.emailWebappUrl || '')}"
+                 placeholder="https://script.google.com/macros/s/.../exec"
+                 dir="ltr">
+          <span class="text-muted text-sm">הדבק כאן את ה-URL שמתקבל לאחר פרסום הסקריפט כ-Web App</span>
+        </div>
+
+        <div class="form-actions" style="flex-wrap:wrap;gap:8px;align-items:center">
+          <button class="btn btn-primary" onclick="saveTaskWebappUrl()">💾 שמור URL</button>
+          <button class="btn btn-success" id="task-sync-btn" onclick="taskRunNow(this)">▶ סנכרן משימות ממייל עכשיו</button>
+        </div>
+        <div id="task-sync-status" style="margin-top:8px;font-size:13px"></div>
+      </div>
+
       <!-- הגדרות דוח אוטומטי -->
       ${buildReportSettingsHtml(settings.reportSettings)}
 
@@ -1195,6 +1350,41 @@ function buildReportSettingsHtml(rs) {
       <span class="text-muted text-sm" style="align-self:center">נשלח לאחרונה: ${lastSent}</span>
     </div>
   </div>`;
+}
+
+// ── Task Email Sync ────────────────────────────────────
+function saveTaskWebappUrl() {
+  const url = (document.getElementById('task-webapp-url').value || '').trim();
+  const s   = getSettings();
+  s.emailWebappUrl = url;
+  saveSettings(s);
+  cloudSaveDebounced();
+  showToast('כתובת Web App נשמרה ✓');
+}
+
+async function taskRunNow(btn) {
+  const url       = getSettings().emailWebappUrl || '';
+  const statusEl  = document.getElementById('task-sync-status');
+
+  if (!url) {
+    statusEl.innerHTML = '<span style="color:#dc2626">❌ יש להגדיר ולשמור כתובת Web App תחילה</span>';
+    return;
+  }
+
+  const origText  = btn.textContent;
+  btn.disabled    = true;
+  btn.textContent = '⏳ מסנכרן…';
+  statusEl.innerHTML = '';
+
+  try {
+    await fetch(`${url}?mode=tasks`, { mode: 'no-cors' });
+    statusEl.innerHTML = '<span style="color:#059669">✅ הסקריפט הופעל — רענן את הדף לאחר ~30 שניות לראות משימות חדשות</span>';
+  } catch(err) {
+    statusEl.innerHTML = `<span style="color:#dc2626">❌ שגיאה: ${err.message}</span>`;
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = origText;
+  }
 }
 
 // ── Audit Log Actions ──────────────────────────────────

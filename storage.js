@@ -11,6 +11,7 @@ const KEYS = {
 const DEFAULT_SETTINGS = {
   employees:  [],
   categories: [],
+  emailWebappUrl: '',   // כתובת ה-Web App של Apps Script לסנכרון מיילים
   // רמות חשיבות דינמיות – ניתן להוסיף/להסיר
   importanceLevels: [
     { key: 'urgent',   label: 'דחוף',   color: '#e53e3e' },
@@ -35,6 +36,11 @@ const DEFAULT_SETTINGS = {
 // ── Utils ──────────────────────────────────────────────
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// מזהה משימה – ספרות בלבד (timestamp מילישניות, 13 ספרות, ייחודי)
+function generateTaskId() {
+  return String(Date.now());
 }
 
 function formatDate(isoString) {
@@ -82,7 +88,7 @@ function createTask(data) {
   const tasks = getTasks();
   const now   = new Date().toISOString();
   const task  = {
-    id:             generateId(),
+    id:             generateTaskId(),
     createdAt:      now,
     assignedTo:     data.assignedTo,
     category:       data.category,
@@ -202,6 +208,9 @@ function getSettings() {
       color: oldColors[def.key] || def.color
     }));
   }
+
+  // emailWebappUrl – מיגרציה
+  if (s.emailWebappUrl === undefined) s.emailWebappUrl = '';
 
   // הגדרות דוח – ודא שקיימות
   if (!s.reportSettings) {

@@ -424,6 +424,87 @@ html, body { height: 100%; font-family: "Segoe UI", "Arial Hebrew", Arial, sans-
 .row-btn.perm-del-btn { font-size: 12.5px; color: var(--danger); border: 1px solid var(--danger); padding: 3px 8px; }
 .row-btn.perm-del-btn:hover { background: var(--danger-light); }
 
+/* ===================== MULTI-SELECT & BULK ACTIONS ===================== */
+
+/* Checkbox column */
+.col-check { width: 36px; min-width: 36px; text-align: center !important; padding: 6px 4px !important; }
+.col-check input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--primary); }
+
+/* Task ID column */
+.col-task-id { width: 70px; min-width: 60px; }
+.task-id-chip {
+  display: inline-block;
+  font-size: 10px;
+  font-family: monospace;
+  background: var(--gray-100);
+  color: var(--gray-500);
+  border-radius: 4px;
+  padding: 1px 5px;
+  letter-spacing: .02em;
+  direction: ltr;
+}
+
+/* ID search input in filter bar */
+.id-search-input {
+  padding: 5px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  font-size: 13px;
+  width: 120px;
+  background: #fff;
+  transition: border var(--transition);
+}
+.id-search-input:focus { outline: none; border-color: var(--primary); }
+
+/* Selected row */
+.task-table tbody tr.row-selected { background: #eff6ff !important; }
+.task-table tbody tr.row-selected:hover { background: #dbeafe !important; }
+
+/* Bulk action toolbar */
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: #eff6ff;
+  border-bottom: 2px solid #bfdbfe;
+  flex-wrap: wrap;
+  direction: rtl;
+}
+.bulk-sel-count {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1e40af;
+  white-space: nowrap;
+}
+.bulk-btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.bulk-cancel-btn { margin-right: auto; }
+
+/* Bulk action buttons */
+.btn-bulk-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.btn-bulk-danger:hover { background: #fecaca; }
+
+.btn-bulk-success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.btn-bulk-success:hover { background: #bbf7d0; }
+
 /* ===================== SECTION COLLAPSIBLE ===================== */
 .section-collapsible { margin-top: 20px; }
 
