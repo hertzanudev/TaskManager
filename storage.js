@@ -145,11 +145,20 @@ function restoreTask(id) {
 
 // מחיקה לצמיתות מה-localStorage – אין דרך חזרה
 function permanentlyDeleteTask(id) {
-  const tasks   = getTasks();
-  const filtered = tasks.filter(t => t.id !== id);
-  saveTasks(filtered);
-  // רשום את ה-ID כנמחק לצמיתות – כך הסנכרון לא יחזיר אותו
-  addPermanentlyDeletedId(id);
+  // שמור ב-localStorage ישירות (ללא cloudSaveDebounced – נשמור לענן מיידית בסוף)
+  const filtered = getTasks().filter(t => t.id !== id);
+  localStorage.setItem(KEYS.TASKS, JSON.stringify(filtered));
+
+  // הוסף ל-tm_perm_deleted
+  const ids = getPermanentlyDeletedIds();
+  if (!ids.includes(id)) {
+    ids.push(id);
+    localStorage.setItem(PERM_DEL_KEY, JSON.stringify(ids));
+  }
+
+  // שמירה לענן מיידית (ללא debounce) – כדי שדפדפנים אחרים יקבלו את המחיקה מיד
+  if (typeof cloudMergeAndSave === 'function') cloudMergeAndSave();
+  else if (typeof cloudSaveDebounced === 'function') cloudSaveDebounced();
 }
 
 // ── Permanently Deleted IDs ────────────────────────────

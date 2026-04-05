@@ -382,11 +382,13 @@ function renderMain() {
 
 async function syncNow() {
   showToast('מסנכרן עם הענן…', 'info');
-  const loaded = await cloudLoad();
-  if (loaded) {
+  try {
+    // cloudMergeAndSave: מוריד מהענן, ממזג עם מקומי (כולל tm_perm_deleted), שומר לענן ולוקאל
+    // כך מחיקות לצמיתות שבוצעו בדפדפן אחר יסוננו גם מהנתונים המקומיים
+    await cloudMergeAndSave();
     showToast('סנכרון הושלם ✓');
     router();
-  } else {
+  } catch (e) {
     showToast('לא ניתן להתחבר לענן', 'error');
   }
 }
