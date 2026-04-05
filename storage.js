@@ -38,9 +38,9 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// מזהה משימה – ספרות בלבד (timestamp מילישניות, 13 ספרות, ייחודי)
+// מזהה משימה – 7 ספרות בלבד (1000000–9999999)
 function generateTaskId() {
-  return String(Date.now());
+  return String(Math.floor(1000000 + Math.random() * 9000000));
 }
 
 function formatDate(isoString) {
