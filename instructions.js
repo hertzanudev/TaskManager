@@ -17,8 +17,11 @@ function renderInstructions() {
 
     <div class="pdf-override-note" style="margin-bottom:20px">
       <strong>📋 פורמט נושא המייל (Subject):</strong><br>
-      <code style="font-size:1.05em;display:block;margin:8px 0;direction:ltr;text-align:left">
-        משימה, שם-עובד, קטגוריה
+      <code style="font-size:1.05em;display:block;margin:6px 0;direction:ltr;text-align:left">
+        משימה שם-עובד, קטגוריה
+      </code>
+      <code style="font-size:1.05em;display:block;margin:4px 0 8px;direction:ltr;text-align:left;color:#6b7280">
+        משימה שם-עובד, קטגוריה, שם-לקוח&nbsp;&nbsp;← לקוח אופציונלי
       </code>
       <strong>גוף המייל</strong> = תיאור המשימה (חופשי)
     </div>
@@ -34,20 +37,25 @@ function renderInstructions() {
       <tbody>
         <tr>
           <td style="padding:8px 12px;border:1px solid #e5e7eb">מילת פתיחה</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb">חייבת להיות <strong>משימה</strong> (ניתן להגדרה)</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb;direction:ltr;text-align:left">משימה</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">חייבת להיות <strong>משימה</strong> בתחילת הנושא</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">משימה</td>
         </tr>
         <tr style="background:#f9fafb">
           <td style="padding:8px 12px;border:1px solid #e5e7eb">שם עובד</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb">שם מתוך רשימת העובדים במערכת (מופרד בפסיק)</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb">ישראל ישראלי</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">מיד אחרי "משימה" (רווח), לפני הפסיק הראשון</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">תמיר</td>
         </tr>
         <tr>
           <td style="padding:8px 12px;border:1px solid #e5e7eb">קטגוריה</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb">שם קטגוריה מתוך ההגדרות (מופרד בפסיק)</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb">ביטוח חיים</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">אחרי הפסיק הראשון</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">חידושים</td>
         </tr>
         <tr style="background:#f9fafb">
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">לקוח <span style="font-weight:400;color:#6b7280">(אופציונלי)</span></td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">אחרי הפסיק השני</td>
+          <td style="padding:8px 12px;border:1px solid #e5e7eb">מגמה ירוקה</td>
+        </tr>
+        <tr>
           <td style="padding:8px 12px;border:1px solid #e5e7eb">גוף המייל</td>
           <td style="padding:8px 12px;border:1px solid #e5e7eb">תיאור המשימה המלא</td>
           <td style="padding:8px 12px;border:1px solid #e5e7eb">לקוח ביקש חידוש פוליסה...</td>
@@ -56,11 +64,13 @@ function renderInstructions() {
     </table>
 
     <div style="margin-top:14px;padding:12px 14px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0">
-      <strong>דוגמה מלאה:</strong><br>
-      <span style="color:#6b7280;font-size:0.9em">נושא:</span>
-      <code style="display:block;margin:4px 0;direction:ltr;text-align:left">משימה, דוד כהן, ביטוח רכב</code>
+      <strong>דוגמאות:</strong><br>
+      <span style="color:#6b7280;font-size:0.9em">ללא לקוח:</span>
+      <code style="display:block;margin:4px 0;direction:ltr;text-align:left">משימה תמיר, חידושים</code>
+      <span style="color:#6b7280;font-size:0.9em">עם לקוח:</span>
+      <code style="display:block;margin:4px 0;direction:ltr;text-align:left">משימה תמיר, חידושים, מגמה ירוקה</code>
       <span style="color:#6b7280;font-size:0.9em">גוף:</span>
-      <code style="display:block;margin:4px 0;direction:ltr;text-align:left">הלקוח ביקש עדכון פרטי רכב – מספר רישוי 12-345-67</code>
+      <code style="display:block;margin:4px 0;direction:ltr;text-align:left">הלקוח ביקש חידוש פוליסה לשנת 2027</code>
     </div>
   </div>
 
@@ -118,7 +128,8 @@ function renderInstructions() {
       <ul style="margin:8px 0 0;padding-right:20px;line-height:1.9">
         <li>נושא המייל מכיל את <strong>מילת הטריגר</strong> (ברירת מחדל: <code>סריקה</code>)</li>
         <li>המייל מכיל לפחות קובץ PDF אחד מצורף</li>
-        <li>המייל טרם עובד (אין תווית <code>PDF-עובד</code>)</li>
+        <li>המייל טרם עובד (אין תווית <code>PDF-עובד</code>)
+            <br><small style="color:#6b7280">מיילי משימות מקבלים תווית <code>משימה-עודכנה</code></small></li>
         <li>המייל אינו ממני (לא נשלח מהחשבון עצמו)</li>
       </ul>
     </div>
@@ -149,7 +160,7 @@ function renderInstructions() {
       <li>פתח <a href="https://script.google.com" target="_blank" style="color:#2563eb">script.google.com</a> → פרויקט חדש</li>
       <li>הדבק את קוד הסקריפט מהקובץ <code>pdf-processor-appscript.gs</code></li>
       <li>עדכן את <code>appsscript.json</code> עם הסקופים הנדרשים (כפי שמופיע בתחילת הקובץ)</li>
-      <li>הרץ <code>createPdfTrigger()</code> פעם אחת בלבד → מגדיר טריגר כל 5 דקות</li>
+      <li>הרץ <code>createAllTriggers()</code> פעם אחת בלבד → מגדיר טריגרים לשני הסוגים (משימות + PDF)</li>
       <li>פרסם: <strong>Deploy → New deployment → Web App</strong><br>
           Execute as: <em>Me</em> | Who has access: <em>Anyone</em></li>
       <li>העתק את ה-URL שהתקבל</li>
