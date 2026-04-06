@@ -5,6 +5,7 @@
 let editingTaskId    = null;  // null = משימה חדשה
 let longPressTimer   = null;
 let longPressTarget  = null;
+let _lastFilteredTasks = [];  // משימות מסוננות אחרונות במסך הראשי (לשליחה במייל)
 
 // Filter state per screen
 const filterState = {
@@ -321,6 +322,9 @@ function renderMain() {
 
   if (fs.idQuery) openTasks = openTasks.filter(t => String(t.id).includes(fs.idQuery.trim()));
 
+  // שמור רשימה מסוננת לשימוש בכפתור שליחה במייל
+  _lastFilteredTasks = openTasks;
+
   const filterHtml = hasSetup ? `
     <div class="filter-bar">
       <span class="filter-label">סינון:</span>
@@ -348,6 +352,7 @@ function renderMain() {
         <div class="btn-header-actions">
           <button class="btn btn-outline" onclick="syncNow()" title="טען נתונים עדכניים מהענן">🔄 סנכרון</button>
           <button class="btn btn-outline" onclick="openExportDialog()">📥 יצוא לאקסל</button>
+          <button class="btn btn-outline" onclick="sendFilteredListEmail()" title="שלח את הרשימה המסוננת במייל">📧 שלח ברשימה</button>
           <button class="btn btn-primary" onclick="startNewTask()">+ משימה חדשה</button>
         </div>
       </div>
@@ -692,6 +697,14 @@ function renderTaskTable(tasks, mode, settings) {
                      : formatDateOnly(task.createdAt);
     const importanceBadge = getImportanceBadge(task.importance, settings);
 
+    // כיתה לגיל משימה (רק עבור משימות פתוחות במסך הראשי)
+    let ageClass = '';
+    if (mode === 'main' && !isDraft && task.createdAt) {
+      const ageHours = (Date.now() - new Date(task.createdAt)) / 3600000;
+      if      (ageHours >= 48) ageClass = ' task-age-48';
+      else if (ageHours >= 24) ageClass = ' task-age-24';
+    }
+
     const actions = `
       <div class="row-actions">
         ${showComplete && !isDraft ? `<button class="row-btn complete-btn" data-action="complete" data-id="${task.id}" title="סמן כהושלם">✓</button>` : ''}
@@ -707,7 +720,7 @@ function renderTaskTable(tasks, mode, settings) {
                   onchange="toggleRowSelect('${mode}','${task.id}')">
          </td>` : '';
 
-    return `<tr class="${isDraft ? 'draft-row' : ''}${isSelected ? ' row-selected' : ''}"
+    return `<tr class="${isDraft ? 'draft-row' : ''}${isSelected ? ' row-selected' : ''}${ageClass}"
                data-id="${task.id}" data-action-row="true">
       ${checkCell}
       <td class="col-task-id" data-label="מזהה"><span class="task-id-chip">${esc(task.id)}</span></td>

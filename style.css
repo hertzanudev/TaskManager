@@ -366,6 +366,11 @@ html, body { height: 100%; font-family: "Segoe UI", "Arial Hebrew", Arial, sans-
 .task-table tbody tr.draft-row  { background: #f9f9f9; }
 .task-table tbody tr.draft-row td { color: var(--gray-500); }
 
+/* גיל משימה – מעל 24 שעות: בולד; מעל 48 שעות: אדום */
+.task-table tbody tr.task-age-24 td { font-weight: 700; }
+.task-table tbody tr.task-age-48 td { font-weight: 700; color: #dc2626; }
+.task-table tbody tr.task-age-48:hover td { color: #dc2626; }
+
 .task-desc-cell {
   max-width: 220px;
   overflow: hidden;
