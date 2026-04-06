@@ -334,6 +334,7 @@ function renderMain() {
              value="${esc(fs.idQuery)}"
              oninput="filterState.main.idQuery=this.value;renderMain()">
       <button class="btn btn-sm btn-outline" onclick="clearMainFilters()">נקה סינונים</button>
+      <button class="btn btn-sm btn-outline" onclick="sendFilteredListEmail()" title="שלח את הרשימה המסוננת במייל">📧 שלח הרשימה</button>
     </div>` : '';
 
   const welcomeBanner = !hasSetup ? `
@@ -352,7 +353,6 @@ function renderMain() {
         <div class="btn-header-actions">
           <button class="btn btn-outline" onclick="syncNow()" title="טען נתונים עדכניים מהענן">🔄 סנכרון</button>
           <button class="btn btn-outline" onclick="openExportDialog()">📥 יצוא לאקסל</button>
-          <button class="btn btn-outline" onclick="sendFilteredListEmail()" title="שלח את הרשימה המסוננת במייל">📧 שלח ברשימה</button>
           <button class="btn btn-primary" onclick="startNewTask()">+ משימה חדשה</button>
         </div>
       </div>
