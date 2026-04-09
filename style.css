@@ -347,6 +347,15 @@ html, body { height: 100%; font-family: "Segoe UI", "Arial Hebrew", Arial, sans-
   border-bottom: 1px solid var(--gray-200);
 }
 
+.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th-sortable:hover { background: #e9edf2; color: #374151; }
+.th-sort-active    { color: #2b6cb0 !important; }
+.sort-arrow        { font-size: 10px; margin-right: 3px; opacity: .7; }
+
 .task-table td {
   padding: 11px 14px;
   border-bottom: 1px solid var(--gray-100);

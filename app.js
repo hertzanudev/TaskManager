@@ -14,6 +14,19 @@ const filterState = {
   deleted:   { employees: [], categories: [], dateFrom: '', dateTo: '', idQuery: '' }
 };
 
+// Sort state – מסך ראשי בלבד
+const sortState = { col: null, dir: 'asc' };
+
+function setSortMain(col) {
+  if (sortState.col === col) {
+    sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortState.col = col;
+    sortState.dir = 'asc';
+  }
+  renderMain();
+}
+
 // ── Init ───────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   // הצג סטטוס טעינה גלוי
@@ -311,14 +324,33 @@ function renderMain() {
   if (fs.employees.length > 0)   openTasks = openTasks.filter(t => fs.employees.includes(t.assignedTo));
   if (fs.categories.length > 0)  openTasks = openTasks.filter(t => fs.categories.includes(t.category));
 
-  // מיון: דחוף ראשון, אח"כ לפי תאריך יצירה (ישן ראשון)
+  // מיון
   const importanceOrder = { urgent: 0, daily: 1, flexible: 2, null: 3 };
-  openTasks.sort((a, b) => {
-    const ia = importanceOrder[a.importance] ?? 3;
-    const ib = importanceOrder[b.importance] ?? 3;
-    if (ia !== ib) return ia - ib;
-    return new Date(a.createdAt) - new Date(b.createdAt);
-  });
+  if (sortState.col) {
+    const { col, dir } = sortState;
+    openTasks.sort((a, b) => {
+      let va, vb;
+      if (col === 'createdAt') {
+        va = new Date(a.createdAt); vb = new Date(b.createdAt);
+      } else if (col === 'importance') {
+        va = importanceOrder[a.importance] ?? 3; vb = importanceOrder[b.importance] ?? 3;
+      } else {
+        va = (a[col] || '').toString().toLowerCase();
+        vb = (b[col] || '').toString().toLowerCase();
+      }
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  } else {
+    // ברירת מחדל: דחוף ראשון, אחכ ישן ראשון
+    openTasks.sort((a, b) => {
+      const ia = importanceOrder[a.importance] ?? 3;
+      const ib = importanceOrder[b.importance] ?? 3;
+      if (ia !== ib) return ia - ib;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+  }
 
   if (fs.idQuery) openTasks = openTasks.filter(t => String(t.id).includes(fs.idQuery.trim()));
 
@@ -361,7 +393,7 @@ function renderMain() {
       ${filterHtml}
 
       <!-- רשימת משימות פתוחות -->
-      ${renderTaskTable(openTasks, 'main', settings)}
+      ${renderTaskTable(openTasks, 'main', settings, sortState)}
 
       <!-- משימות שהושלמו היום -->
       <div class="section-collapsible">
@@ -665,7 +697,14 @@ function bulkAction(action, mode) {
 }
 
 // ── Table Renderer ─────────────────────────────────────
-function renderTaskTable(tasks, mode, settings) {
+function renderTaskTable(tasks, mode, settings, ss = null) {
+  // עוזר לכותרת עם אפשרות מיון (ss = sortState, רק במסך הראשי)
+  const thSort = (label, col) => {
+    if (!ss) return `<th>${label}</th>`;
+    const active = ss.col === col;
+    const arrow  = active ? (ss.dir === 'asc' ? ' ▲' : ' ▼') : ' ⇅';
+    return `<th class="th-sortable${active ? ' th-sort-active' : ''}" onclick="setSortMain('${col}')">${label}<span class="sort-arrow">${arrow}</span></th>`;
+  };
   const isBulk = mode === 'main' || mode === 'completed' || mode === 'deleted';
 
   if (!tasks || tasks.length === 0) {
@@ -729,9 +768,9 @@ function renderTaskTable(tasks, mode, settings) {
       <td data-label="קטגוריה">${esc(task.category)}</td>
       <td data-label="לקוח">
         ${esc(task.client)}
-        ${task.policyNumber ? `<br><span class="cell-sub">פוליסה: ${esc(task.policyNumber)}</span>` : ''}
-        ${task.idNumber     ? `<br><span class="cell-sub">ח.פ: ${esc(task.idNumber)}</span>`       : ''}
+        ${task.idNumber ? `<br><span class="cell-sub">ח.פ: ${esc(task.idNumber)}</span>` : ''}
       </td>
+      <td data-label="פוליסה">${esc(task.policyNumber || '')}</td>
       <td data-label="תיאור" class="task-desc-cell" title="${esc(task.description)}">${esc(truncate(task.description))}</td>
       <td data-label="חשיבות">${importanceBadge}</td>
       <td>${actions}</td>
@@ -768,12 +807,13 @@ function renderTaskTable(tasks, mode, settings) {
           <tr>
             ${checkHeader}
             <th class="col-task-id">מזהה</th>
-            <th>${dateCol}</th>
-            <th>עובד</th>
-            <th>קטגוריה</th>
-            <th>לקוח</th>
+            ${thSort(dateCol, 'createdAt')}
+            ${thSort('עובד', 'assignedTo')}
+            ${thSort('קטגוריה', 'category')}
+            ${thSort('לקוח', 'client')}
+            ${thSort('פוליסה', 'policyNumber')}
             <th>תיאור</th>
-            <th>חשיבות</th>
+            ${thSort('חשיבות', 'importance')}
             <th>פעולות</th>
           </tr>
         </thead>
