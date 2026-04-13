@@ -108,12 +108,12 @@ function router() {
 
 // ── Toast ──────────────────────────────────────────────
 let toastTimeout = null;
-function showToast(msg, type = 'success') {
+function showToast(msg, type = 'success', duration = 3000) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.className   = `toast ${type} show`;
   if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => { el.classList.remove('show'); }, 3000);
+  toastTimeout = setTimeout(() => { el.classList.remove('show'); }, duration);
 }
 
 // ── Confirm Dialog ─────────────────────────────────────

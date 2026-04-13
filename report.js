@@ -73,16 +73,13 @@ function markReportSent() {
   saveSettings(s);
 }
 
-// ── Send Filtered List (כפתור "שלח ברשימה" במסך הראשי) ──
+// ── Send Filtered List (כפתור "שלח הרשימה" במסך הראשי) ──
+// פותח חלונית עם פרטי מייל לעריכה לפני שליחה
 function sendFilteredListEmail() {
   const rs = getSettings().reportSettings;
 
   if (!rs.emailjsServiceId || !rs.emailjsTemplateId || !rs.emailjsPublicKey) {
     showToast('יש להגדיר תחילה פרטי EmailJS בהגדרות', 'error');
-    return;
-  }
-  if (!rs.recipientEmail) {
-    showToast('יש להזין כתובת מייל נמען בהגדרות', 'error');
     return;
   }
 
@@ -92,20 +89,57 @@ function sendFilteredListEmail() {
     return;
   }
 
-  const settings = getSettings();
-  const now      = new Date();
-  const subject  = `רשימת משימות – ${formatDate(now.toISOString())} (${tasks.length} משימות)`;
+  const now            = new Date();
+  const defaultSubject = `רשימת משימות – ${formatDate(now.toISOString())} (${tasks.length} משימות)`;
+  const defaultTo      = rs.recipientEmail || '';
+
+  const overlay = document.getElementById('export-overlay');
+  const dialog  = document.getElementById('export-dialog');
+  overlay.classList.add('visible');
+  dialog.classList.add('visible');
+
+  dialog.innerHTML = `
+    <h2>📧 שלח הרשימה במייל</h2>
+    <p style="font-size:13px;color:var(--gray-500);margin-bottom:14px">${tasks.length} משימות ברשימה המסוננת</p>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">כתובת מייל נמען</label>
+      <input type="email" id="send-list-to" class="form-control" value="${esc(defaultTo)}" placeholder="example@email.com" dir="ltr">
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">נושא המייל</label>
+      <input type="text" id="send-list-subject" class="form-control" value="${esc(defaultSubject)}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="doSendFilteredEmail()">שלח</button>
+      <button class="btn btn-outline" onclick="closeExportDialog()">ביטול</button>
+    </div>`;
+}
+
+// מבצע את השליחה בפועל לאחר אישור בחלונית
+function doSendFilteredEmail() {
+  const toEmail = (document.getElementById('send-list-to')?.value || '').trim();
+  const subject = (document.getElementById('send-list-subject')?.value || '').trim();
+
+  if (!toEmail) {
+    showToast('יש להזין כתובת מייל', 'error');
+    return;
+  }
+
+  const rs    = getSettings().reportSettings;
+  const tasks = (typeof _lastFilteredTasks !== 'undefined') ? _lastFilteredTasks : [];
+  const now   = new Date();
 
   const taskRows = tasks.map(t => {
     const ageHours = t.createdAt ? ((Date.now() - new Date(t.createdAt)) / 3600000).toFixed(1) : '—';
     const ageStyle = ageHours >= 48 ? 'color:#dc2626;font-weight:700'
                    : ageHours >= 24 ? 'font-weight:700'
                    : '';
-    return `<tr style="border-bottom:1px solid #e5e7eb${ageStyle ? ';' + ageStyle : ''}">
+    return `<tr style="border-bottom:1px solid #e5e7eb">
       <td style="padding:8px 12px;${ageStyle}">${esc(t.id)}</td>
       <td style="padding:8px 12px;${ageStyle}">${esc(t.assignedTo)}</td>
       <td style="padding:8px 12px;${ageStyle}">${esc(t.category)}</td>
       <td style="padding:8px 12px;${ageStyle}">${esc(t.client || '—')}</td>
+      <td style="padding:8px 12px;${ageStyle}">${esc(t.policyNumber || '—')}</td>
       <td style="padding:8px 12px;font-size:13px;${ageStyle}">${esc(truncate(t.description, 60))}</td>
       <td style="padding:8px 12px;text-align:center;${ageStyle}">${ageHours !== '—' ? ageHours + ' שע\'' : '—'}</td>
     </tr>`;
@@ -114,7 +148,7 @@ function sendFilteredListEmail() {
   const bodyHtml = `
 <div dir="rtl" style="font-family:Arial,sans-serif;max-width:750px;margin:0 auto;color:#1f2937">
   <div style="background:#2b6cb0;color:#fff;padding:20px 28px;border-radius:8px 8px 0 0">
-    <h1 style="margin:0;font-size:20px">📋 ${subject}</h1>
+    <h1 style="margin:0;font-size:20px">📋 ${esc(subject)}</h1>
     <p style="margin:6px 0 0;opacity:.85;font-size:14px">נוצר ב-${formatDate(now.toISOString())}</p>
   </div>
   <div style="background:#fff;padding:20px 28px;border:1px solid #e5e7eb">
@@ -125,14 +159,15 @@ function sendFilteredListEmail() {
           <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6b7280">עובד</th>
           <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6b7280">קטגוריה</th>
           <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6b7280">לקוח</th>
+          <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6b7280">פוליסה</th>
           <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6b7280">תיאור</th>
-          <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6b7280">גיל (שעות)</th>
+          <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6b7280">גיל (שע')</th>
         </tr>
       </thead>
       <tbody>${taskRows}</tbody>
     </table>
     <p style="margin-top:16px;font-size:12px;color:#9ca3af">
-      🔴 אדום/בולד = מעל 48 שעות | <strong>בולד</strong> = מעל 24 שעות
+      🔴 אדום/בולד = מעל 48 שעות &nbsp;|&nbsp; <strong>בולד</strong> = מעל 24 שעות
     </p>
   </div>
   <div style="background:#f9fafb;padding:12px 28px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;font-size:12px;color:#9ca3af;text-align:center">
@@ -140,17 +175,19 @@ function sendFilteredListEmail() {
   </div>
 </div>`;
 
-  showToast('שולח רשימה…', 'info');
+  closeExportDialog();
+  showToast('שולח…', 'info', 60000);
+
   emailjs.send(rs.emailjsServiceId, rs.emailjsTemplateId, {
-    to_email:  rs.recipientEmail,
+    to_email:  toEmail,
     from_name: 'מערכת ניהול משימות',
     subject,
     message:   bodyHtml
   })
-  .then(() => showToast(`הרשימה נשלחה (${tasks.length} משימות) ✉️`))
+  .then(() => showToast(`המייל נשלח בהצלחה ✉️`, 'success', 2000))
   .catch(err => {
     console.error('שגיאה בשליחת רשימה:', err);
-    showToast('שגיאה בשליחה – בדוק פרטי EmailJS', 'error');
+    showToast('שגיאה בשליחה – בדוק פרטי EmailJS', 'error', 2000);
   });
 }
 
