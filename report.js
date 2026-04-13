@@ -76,22 +76,20 @@ function markReportSent() {
 // ── Send Filtered List (כפתור "שלח הרשימה" במסך הראשי) ──
 // פותח חלונית עם פרטי מייל לעריכה לפני שליחה
 function sendFilteredListEmail() {
-  const rs = getSettings().reportSettings;
-
-  if (!rs.emailjsServiceId || !rs.emailjsTemplateId || !rs.emailjsPublicKey) {
-    showToast('יש להגדיר תחילה פרטי EmailJS בהגדרות', 'error');
-    return;
-  }
-
   const tasks = (typeof _lastFilteredTasks !== 'undefined') ? _lastFilteredTasks : [];
   if (tasks.length === 0) {
     showToast('אין משימות ברשימה הנוכחית לשליחה', 'error');
     return;
   }
 
-  const now            = new Date();
-  const defaultSubject = `רשימת משימות – ${formatDate(now.toISOString())} (${tasks.length} משימות)`;
-  const defaultTo      = rs.recipientEmail || '';
+  let defaultTo = '';
+  let defaultSubject = '';
+  try {
+    const rs = getSettings().reportSettings || {};
+    defaultTo = rs.recipientEmail || '';
+  } catch(e) {}
+  const now = new Date();
+  defaultSubject = 'רשימת משימות – ' + formatDate(now.toISOString()) + ' (' + tasks.length + ' משימות)';
 
   const overlay = document.getElementById('export-overlay');
   const dialog  = document.getElementById('export-dialog');
@@ -103,16 +101,22 @@ function sendFilteredListEmail() {
     <p style="font-size:13px;color:var(--gray-500);margin-bottom:14px">${tasks.length} משימות ברשימה המסוננת</p>
     <div class="form-group" style="margin-bottom:12px">
       <label class="form-label">כתובת מייל נמען</label>
-      <input type="email" id="send-list-to" class="form-control" value="${esc(defaultTo)}" placeholder="example@email.com" dir="ltr">
+      <input type="email" id="send-list-to" class="form-control" placeholder="example@email.com" dir="ltr">
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label class="form-label">נושא המייל</label>
-      <input type="text" id="send-list-subject" class="form-control" value="${esc(defaultSubject)}">
+      <input type="text" id="send-list-subject" class="form-control">
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="doSendFilteredEmail()">שלח</button>
       <button class="btn btn-outline" onclick="closeExportDialog()">ביטול</button>
     </div>`;
+
+  // הגדר ערכים אחרי הרנדור
+  const toInput  = document.getElementById('send-list-to');
+  const subInput = document.getElementById('send-list-subject');
+  if (toInput)  toInput.value  = defaultTo;
+  if (subInput) subInput.value = defaultSubject;
 }
 
 // מבצע את השליחה בפועל לאחר אישור בחלונית
@@ -125,7 +129,11 @@ function doSendFilteredEmail() {
     return;
   }
 
-  const rs    = getSettings().reportSettings;
+  const rs = getSettings().reportSettings || {};
+  if (!rs.emailjsServiceId || !rs.emailjsTemplateId || !rs.emailjsPublicKey) {
+    showToast('יש להגדיר פרטי EmailJS בהגדרות לפני שליחה', 'error');
+    return;
+  }
   const tasks = (typeof _lastFilteredTasks !== 'undefined') ? _lastFilteredTasks : [];
   const now   = new Date();
 

@@ -1,37 +1,37 @@
 // ===================== EXCEL EXPORT (SheetJS) =====================
 
 function openExportDialog() {
-  const overlay    = document.getElementById('export-overlay');
-  const dialog     = document.getElementById('export-dialog');
-  const defaultTo  = (getSettings().reportSettings || {}).recipientEmail || '';
+  const overlay = document.getElementById('export-overlay');
+  const dialog  = document.getElementById('export-dialog');
   overlay.classList.add('visible');
   dialog.classList.add('visible');
+
+  let defaultTo = '';
+  try { defaultTo = (getSettings().reportSettings || {}).recipientEmail || ''; } catch(e) {}
 
   dialog.innerHTML = `
     <h2>📥 יצוא לאקסל</h2>
     <p style="font-size:13.5px;color:var(--gray-600);margin-bottom:14px">בחר את סוגי המשימות לייצוא:</p>
     <div class="export-options">
-      <label class="export-option">
-        <input type="checkbox" id="exp-open"      checked> משימות פתוחות
-      </label>
-      <label class="export-option">
-        <input type="checkbox" id="exp-draft"     checked> טיוטות
-      </label>
-      <label class="export-option">
-        <input type="checkbox" id="exp-completed"> הושלמו
-      </label>
-      <label class="export-option">
-        <input type="checkbox" id="exp-deleted"> נמחקו
-      </label>
+      <label class="export-option"><input type="checkbox" id="exp-open"      checked> משימות פתוחות</label>
+      <label class="export-option"><input type="checkbox" id="exp-draft"     checked> טיוטות</label>
+      <label class="export-option"><input type="checkbox" id="exp-completed"> הושלמו</label>
+      <label class="export-option"><input type="checkbox" id="exp-deleted">   נמחקו</label>
     </div>
     <div class="form-group" style="margin-top:16px">
       <label class="form-label">שלח גם למייל (אופציונלי)</label>
-      <input type="email" id="exp-email" class="form-control" value="${defaultTo}" placeholder="השאר ריק לדילוג" dir="ltr">
+      <input type="email" id="exp-email" class="form-control" placeholder="השאר ריק לדילוג" dir="ltr">
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="runExport()">יצא</button>
       <button class="btn btn-outline" onclick="closeExportDialog()">ביטול</button>
     </div>`;
+
+  // הגדר ערך שדה המייל אחרי הרנדור (בטוח יותר)
+  if (defaultTo) {
+    const emailInput = document.getElementById('exp-email');
+    if (emailInput) emailInput.value = defaultTo;
+  }
 }
 
 function closeExportDialog() {
@@ -57,23 +57,21 @@ function runExport() {
     return;
   }
 
-  const tasks    = getTasks().filter(t => statusesToInclude.includes(t.status));
-  const settings = getSettings();
-  const labels   = settings.importanceLabels;
+  const tasks     = getTasks().filter(t => statusesToInclude.includes(t.status));
+  const settings  = getSettings();
   const statusMap = { open: 'פתוחה', completed: 'הושלמה', deleted: 'נמחקה', draft: 'טיוטה' };
+
+  // פונקציה לשם חשיבות – תואמת את מבנה importanceLevels
+  const importanceLabel = (key) => {
+    if (!key) return '';
+    const level = (settings.importanceLevels || []).find(l => l.key === key);
+    return level ? level.label : key;
+  };
 
   // כותרות עמודות
   const headers = [
-    'מזהה',
-    'תאריך יצירה',
-    'עובד',
-    'קטגוריה',
-    'לקוח',
-    'תיאור',
-    'חשיבות',
-    'סטטוס',
-    'תאריך השלמה',
-    'תאריך מחיקה'
+    'מזהה', 'תאריך יצירה', 'עובד', 'קטגוריה', 'לקוח', 'פוליסה',
+    'תיאור', 'חשיבות', 'סטטוס', 'תאריך השלמה', 'תאריך מחיקה'
   ];
 
   const rows = tasks.map(t => [
@@ -81,9 +79,10 @@ function runExport() {
     formatDate(t.createdAt),
     t.assignedTo,
     t.category,
-    t.client,
+    t.client || '',
+    t.policyNumber || '',
     t.description || '',
-    t.importance ? (labels[t.importance] || t.importance) : '',
+    importanceLabel(t.importance),
     statusMap[t.status] || t.status,
     t.completedAt ? formatDate(t.completedAt) : '',
     t.deletedAt   ? formatDate(t.deletedAt)   : ''
@@ -98,11 +97,12 @@ function runExport() {
 
   // רוחב עמודות
   ws['!cols'] = [
-    { wch: 18 }, // מזהה
+    { wch: 10 }, // מזהה
     { wch: 18 }, // תאריך יצירה
     { wch: 16 }, // עובד
     { wch: 14 }, // קטגוריה
     { wch: 16 }, // לקוח
+    { wch: 14 }, // פוליסה
     { wch: 40 }, // תיאור
     { wch: 10 }, // חשיבות
     { wch: 10 }, // סטטוס
