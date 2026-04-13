@@ -40,6 +40,15 @@ function closeExportDialog() {
 }
 
 function runExport() {
+  try {
+    _runExportInternal();
+  } catch(err) {
+    console.error('[EXPORT] שגיאה ביצוא:', err);
+    showToast('שגיאה ביצוא: ' + err.message, 'error', 5000);
+  }
+}
+
+function _runExportInternal() {
   const includeOpen      = document.getElementById('exp-open')?.checked;
   const includeDraft     = document.getElementById('exp-draft')?.checked;
   const includeCompleted = document.getElementById('exp-completed')?.checked;
@@ -57,9 +66,11 @@ function runExport() {
     return;
   }
 
-  const tasks     = getTasks().filter(t => statusesToInclude.includes(t.status));
-  const settings  = getSettings();
+  const tasks    = getTasks().filter(t => statusesToInclude.includes(t.status));
+  const settings = getSettings();
   const statusMap = { open: 'פתוחה', completed: 'הושלמה', deleted: 'נמחקה', draft: 'טיוטה' };
+
+  const safeDate = (v) => { try { return v ? formatDate(v) : ''; } catch(e) { return ''; } };
 
   // פונקציה לשם חשיבות – תואמת את מבנה importanceLevels
   const importanceLabel = (key) => {
@@ -75,17 +86,17 @@ function runExport() {
   ];
 
   const rows = tasks.map(t => [
-    t.id,
-    formatDate(t.createdAt),
-    t.assignedTo,
-    t.category,
-    t.client || '',
+    String(t.id || ''),
+    safeDate(t.createdAt),
+    t.assignedTo   || '',
+    t.category     || '',
+    t.client       || '',
     t.policyNumber || '',
-    t.description || '',
+    t.description  || '',
     importanceLabel(t.importance),
     statusMap[t.status] || t.status,
-    t.completedAt ? formatDate(t.completedAt) : '',
-    t.deletedAt   ? formatDate(t.deletedAt)   : ''
+    safeDate(t.completedAt),
+    safeDate(t.deletedAt)
   ]);
 
   // בנה worksheet
